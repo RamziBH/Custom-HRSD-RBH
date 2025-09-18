@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>package_private</access>
+        <active>true</active>
+        <api_name>x_222370_custom_0.HRSD RBH_AjaxUtils</api_name>
+        <caller_access/>
+        <client_callable>true</client_callable>
+        <description/>
+        <mobile_callable>false</mobile_callable>
+        <name>HRSD RBH_AjaxUtils</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var HRSD_RBH_AjaxUtils = Class.create();
+HRSD_RBH_AjaxUtils.prototype = Object.extendsObject(global.AbstractAjaxProcessor, {
+    getGroupMembership: function(sysId) {
+        var result = []; //default result will be an empty string
+        var groupId = this.getParameter("sysparm_id") || sysId; //the Group's sys_id passed in from the client script
+
+        //get the list of Users if a Group sys_id was passed in
+        if (groupId) {
+            var group = new GlideRecord("sys_user_grmember");
+            group.addEncodedQuery("group=" + groupId);
+            group.orderBy("user.name");
+            group.query();
+            while (group.next()) {
+                result.push(group.getValue("user"));
+            }
+        }
+
+        return result.join(",");
+
+    }, //end of getGroupMembership
+
+
+
+    getRequesterInfo: function() {
+        var result = {};
+        var id = this.getParameter("sysparm_id");
+        result.departmentId = "";
+        result.departmentName = "";
+
+        //get a list of sys_ids
+        var department = new x_hccc_hoc_doa.HoCDoAUtils().allowedDepartments(gs.getUserID(), "hr_submit", id);
+        var deptArray = department.split(",");
+        if (deptArray.length == 1) {
+            var gr = new GlideRecord("cmn_department");
+            if (gr.get(department)) {
+                result.departmentId = gr.getValue("sys_id");
+                result.departmentName = gr.getDisplayValue();
+            }
+        }
+
+        return JSON.stringify(result);
+    },
+
+
+
+    getDepartmentBusinessUnitType: function() {
+        //returns the Business Unit Type for the passed in Department
+
+        var departmentId = this.getParameter("sysparm_id");
+        var result = {};
+        result.type = "test";
+
+        if (departmentId) {
+            var department = new GlideRecord("cmn_department");
+            if (department.get(departmentId)) {
+                result.type = department.business_unit.u_hoc_bu_type.toString();
+            }
+        }
+
+        return JSON.stringify(result);
+    },
+
+
+
+    //manually add a record to the Approval [sysapproval_approver] table
+    //and cancel the old ones
+    manuallyOverrideApproval: function() {
+        var result = {};
+        result.approvalId = "";
+        var record = this.getParameter("sysparm_id");
+        var table = this.getParameter("sysparm_table_name");
+
+        //make sure there is NOT an approval already for the record and current user
+        var existingApproval = new GlideRecord("sysapproval_approver");
+        existingApproval.addEncodedQuery("document_id=" + record + "^approver=" + gs.getUserID() + "^state=requested");
+        existingApproval.query();
+        if (!existingApproval.next()) {
+            //create a new approval record
+            var approval = new GlideRecord("sysapproval_approver");
+            approval.newRecord();
+            if (approval.isValid()) {
+                approval.approver = gs.getUserID();
+                approval.state = "requested";
+                approval.source_table = table;
+                approval.document_id = record; //Approving
+                approval.sysapproval = record; //Approval for (Task)
+                approval.approval_column = "approval";
+                approval.approval_journal_column = "approval_history";
+                result.approvalId = approval.insert();
+            }
+
+            //cancel the other approvals
+            var oldApproval = new GlideRecord("sysapproval_approver");
+            oldApproval.addEncodedQuery("document_id=" + record + "^state=requested^sys_id!=" + result.approvalId);
+            oldApproval.query();
+            while (oldApproval.next()) {
+                oldApproval.state = "cancelled";
+                oldApproval.update();
+            }
+        }
+
+        return JSON.stringify(result);
+    }, //end of addApproval
+
+    type: 'HRSD_RBH_AjaxUtils'
+});]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-18 12:19:55</sys_created_on>
+        <sys_id>a1d8b13dc3003210b0541c65e401312a</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>HRSD RBH_AjaxUtils</sys_name>
+        <sys_package display_value="Custom HRSD RBH" source="x_222370_custom_0">48a87df9c3003210b0541c65e4013112</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="Custom HRSD RBH">48a87df9c3003210b0541c65e4013112</sys_scope>
+        <sys_update_name>sys_script_include_a1d8b13dc3003210b0541c65e401312a</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-18 12:19:55</sys_updated_on>
+    </sys_script_include>
+</record_update>
