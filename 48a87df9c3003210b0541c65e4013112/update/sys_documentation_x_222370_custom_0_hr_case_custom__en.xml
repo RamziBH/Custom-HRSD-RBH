@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update>
+    <sys_documentation element="" label="HR Case custom" language="en" table="x_222370_custom_0_hr_case_custom">
+        <sys_documentation action="INSERT_OR_UPDATE">
+            <element/>
+            <help/>
+            <hint/>
+            <label>HR Case custom</label>
+            <language>en</language>
+            <name>x_222370_custom_0_hr_case_custom</name>
+            <plural>HR Case customs</plural>
+            <sys_class_name>sys_documentation</sys_class_name>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2025-09-18 12:30:13</sys_created_on>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_name>HR Case custom</sys_name>
+            <sys_package display_value="Custom HRSD RBH" source="x_222370_custom_0">48a87df9c3003210b0541c65e4013112</sys_package>
+            <sys_policy/>
+            <sys_scope display_value="Custom HRSD RBH">48a87df9c3003210b0541c65e4013112</sys_scope>
+            <sys_update_name>sys_documentation_x_222370_custom_0_hr_case_custom__en</sys_update_name>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2025-09-18 12:30:13</sys_updated_on>
+            <url/>
+            <url_target/>
+        </sys_documentation>
+    </sys_documentation>
+</record_update>

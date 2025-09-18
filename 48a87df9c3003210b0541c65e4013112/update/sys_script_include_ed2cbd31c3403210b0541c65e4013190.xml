@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>package_private</access>
+        <active>true</active>
+        <api_name>x_222370_custom_0.HRSD_RBHCaseUtils</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description/>
+        <mobile_callable>false</mobile_callable>
+        <name>HRSD_RBHCaseUtils</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var HRSD_RBHCaseUtils = Class.create();
+HRSD_RBHCaseUtils.prototype = {
+    initialize: function(_case, _gs) {
+        if (gs.nil(_case))
+            return;
+
+        this._case = _case;
+        this._gs = _gs || gs;
+				
+		//This lists fields from the record's variables to ignore when generating the Description of the case
+		//Leave property empty if applies to all Case type, otherwise add value of Case types it applies to (as array) 
+		this._ignoreFields = {
+			'validation_completed': '',
+			'obcf_cost_centre':'',
+			'delegation_record':'',
+			'recurring_delegation':'',
+			'del_cost_centre':'',
+			'del_responsibility_centre':'',
+			'rdt_cost_centre':'',
+			'rdt_responsibility_centre':'',
+			'current_delegation_limits': '',
+			'current_role_limits': '',
+			'claims_against_the_house_limit_exceeded': '', 
+			'maximum_limits_allowed': '',
+			'deputy_clerk_limits_allowed': '',
+			'clerk_house_limits_allowed': '',
+			'service_area_head_limits_allowed': '',
+			'law_clerk_limits_allowed': '',
+			'cost_centre_users_limits_allowed': '',
+			'cost_centre_managers_limits_allowed': '',
+			'director_material_contract_limits_allowed': '',
+			'deputy_clerk_administration_limits_allowed': '',
+			'contracting_officer_limits_allowed': '',
+			'chief_hr_officer_limits_allowed': '',
+			'chief_financial_officer_limits_allowed': '',
+			'payment_authority_limits_allowed': '',
+			'pay_benefits_limits_allowed': '',
+			'senior_director_limits_allowed': '',
+			'ccm_accounting_limits_allowed': '',
+			'ccm_contracting_not_fs_limits_allowed': '',
+			'ccm_material_limits_allowed': '',
+			'committees_assoc_exchanges_limits_allowed': '',
+			'contracting_officer_not_fs_limits_allowed': '',
+			'deputy_cfo_limits_allowed': '',
+			'deputy_director_corp_proc_limits_allowed': '',
+			'director_accounting_internal_limits_allowed': '',
+			'senior_contracting_officer_limits_allowed': '',
+			'strategic_procurement_advisor_limits_allowed': '',
+			'obcf_goods_and_services_full_per_policy': '',
+			'obcf_staffing_full_per_policy': '',
+			'obcf_compensation_actions_full_per_policy': '',
+			'obcf_competitive_goods_and_services_full_per_policy': '',
+			'obcf_non_competitive_goods_and_services_full_per_policy': '',
+			'obcf_call_ups_under_a_framework_agreement_full_per_policy': '',
+			'obcf_all_other_expenditures_full_per_policy': '',
+			'obcf_agreements_with_public_entities_full_per_policy': '',
+			'fra_contracting_goods_non_competitive_full_per_policy': '',
+			'fra_contracting_services_competitive_full_per_policy': '',
+			'fra_contracting_services_non_competitive_full_per_policy': '',
+			'fra_spending_material_disposal_and_write_off_down_full_per_policy': ''			
+		};
+    },
+
+		/**
+     * Populates the case with required info
+     * @param {String} serviceId - sys_id of the dfsa case
+     * @param {Object} questions - questions & answers from Record producer
+     * @param {String} source - record producer from which case is being created
+     * @param {Object} caseInfo - case info key value, where key is case field
+     */
+    populateCase: function(caseId, questions, source, caseInfo, recNum) {
+        var dfsaCase = new GlideRecord('x_hccc_dfsa_erp_cases');
+        dfsaCase.get(caseId);
+        if (dfsaCase.isValid() && dfsaCase.getValue('active')) {
+            this._setFields(dfsaCase, questions, source, caseId, recNum);
+        }
+    },
+	
+		/**
+     * Updates the DFSA Case with required info
+     * @param {GlideRecord} dfsaServiceGr - Glide Record of DFSA service
+     * @param {Object} questions - Record producer question and values
+     * @param {String} source - source from which case is being created
+     * @param {Object} caseInfo - case info key value, where key is case field
+     */
+    _setFields: function(dfsaServiceGr, questions, source, caseId, recNum) {
+
+        if (!gs.nil(questions))
+            //this._case.description = this._getDescription(questions);
+			this._case.rich_description = this._getDescription(questions, caseId, recNum);
+    },
+	
+	/**
+     * Creates Object which will be used for populating Description of DFSA Case
+     * @return {Object}
+     */
+    getQuestion: function(question, variableName, answer, fieldRaw, variableOrder, displayValue) {
+        return {
+            question: question + "",
+            name: variableName + "",
+            answer: answer + "",
+            raw: fieldRaw + "",
+            order: variableOrder + "",
+            answerDisplayValue: displayValue + ""
+        };
+    },
+	
+	/**
+     * Creates the description for DFSA case from questions
+     * @return {String}
+     */
+    _getDescription: function(questions, caseId, recNum) {
+        if (gs.nil(questions))
+            return '';
+						
+       // var page1 = '<p><strong>' + gs.getMessage('Page 1 details') + ':</p>\n';
+		var page1 = '';
+		//var page2 = '<p><strong>' + gs.getMessage('Page 2 details') + ':</p>\n';
+		var page2 = '';
+        var title = '<h2><strong>' + gs.getMessageLang('x_hccc_dfsa_erp.Delegation Request Details', 'en') + " / " + gs.getMessageLang('x_hccc_dfsa_erp.Delegation Request Details', 'fq') + '</h2>\n';
+		var ignore = '<p><strong>(Debug) ingored questions:</p>\n';
+		var all = '<p><strong>(Debug) all questions:</p>\n';
+		var firstOBCFLimit = true;
+		var firstFRALimit = true;
+
+        for (var i = 0; i < questions.length; i++) {	
+			var question = questions[i];
+			all += '<p>' + question.name + ': ' + question.question + ':' + question.answerDisplayValue + '</p>\n';
+			var ignoreQuestion = this._ignoreFields.hasOwnProperty(question.name);
+			
+			if(!ignoreQuestion){
+
+				if (!question.name.includes("_limit")){
+					if (question.name.includes("dfsa_")){
+						page1 += '<p><strong>' + (question.name) + ':</p>\n';
+					}
+					
+				else if(question.name.includes("delegation_type")){
+				//if(question.answerDisplayValue=='dfsa_permanent'){
+				//	question.answerDisplayValue= 'Permanent';
+				//}else if(question.answerDisplayValue=='dfsa_acting_appointment'){
+				//	question.answerDisplayValue= 'Acting Appointment';
+				//}else if(question.answerDisplayValue=='dfsa_recurring_acting_app'){
+				//	question.answerDisplayValue= 'Recurring Appointment';
+				//}
+				//page1 += '<p><strong>' + gs.getMessageLang(question.question, 'en') + " / " + gs.getMessageLang(question.question, 'fq') + ':</strong> ' + question.answerDisplayValue + '</p>\n';
+				page1 += '<p><strong>' + gs.getMessageLang(question.question, 'en') + " / " + gs.getMessageLang(question.question, 'fq') + ':</strong> ' + gs.getMessageLang(question.answerDisplayValue, 'en') + " / " + gs.getMessageLang(question.answerDisplayValue, 'fq') + '</p>\n';
+					
+				}
+				else{
+				page1 += '<p><strong>' + gs.getMessageLang(question.question, 'en') + " / " + gs.getMessageLang(question.question, 'fq') + ':</strong> ' + question.answerDisplayValue + '</p>\n';						
+					}
+				}else if(question.name.includes("_limit") && ((question.answerDisplayValue == "")||(question.answerDisplayValue != "0"))){
+					if(question.name.includes("obcf_") && firstOBCFLimit){
+						page2 += '<p><h2><strong>' + gs.getMessageLang('x_hccc_dfsa_erp.Own Budget and Central Funds', 'en') + " / " + gs.getMessageLang('x_hccc_dfsa_erp.Own Budget and Central Funds', 'fq') + ':</p></h2>\n';
+						firstOBCFLimit = false;
+					}else if(question.name.includes("fra_") && firstFRALimit){
+						page2 += '<p><h2><strong>' + gs.getMessageLang('x_hccc_dfsa_erp.Functional responsibility authorities', 'en') + " / " + gs.getMessageLang('x_hccc_dfsa_erp.Functional responsibility authorities', 'fq') + ':</p></h2>\n';
+						firstFRALimit = false;
+					}
+					
+					if((question.answerDisplayValue == "Full") || (question.answerDisplayValue == "Plein")){
+					page2 += '<p><strong>' + gs.getMessageLang(question.question, 'en') + " / " + gs.getMessageLang(question.question, 'fq') + ':</strong> ' + gs.getMessageLang('Full/Plein', 'en') + " / " + gs.getMessageLang('Full/Plein', 'fq') + '</p>\n';
+					}else{
+					page2 += '<p><strong>' + gs.getMessageLang(question.question, 'en') + " / " + gs.getMessageLang(question.question, 'fq') + ':</strong> ' + question.answerDisplayValue + '</p>\n';
+					}
+					}else{
+					ignore += '<p>ignore: ' + question.question + ': ' + question.answerDisplayValue + '</p>\n';
+				}
+			}
+		}
+		
+		var dNum = '<p><strong>' + gs.getMessageLang('Number', 'en') + " / " + gs.getMessageLang('Number', 'fq') + ": " + recNum +  '</p>\n' ;
+		
+		return title + dNum + page1 + page2; // + ignore + all;
+    },
+
+    type: 'HRSD_RBHCaseUtils'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-18 12:34:01</sys_created_on>
+        <sys_id>ed2cbd31c3403210b0541c65e4013190</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>HRSD_RBHCaseUtils</sys_name>
+        <sys_package display_value="Custom HRSD RBH" source="x_222370_custom_0">48a87df9c3003210b0541c65e4013112</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="Custom HRSD RBH">48a87df9c3003210b0541c65e4013112</sys_scope>
+        <sys_update_name>sys_script_include_ed2cbd31c3403210b0541c65e4013190</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-18 12:34:01</sys_updated_on>
+    </sys_script_include>
+</record_update>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_wizard_answer">
+    <sys_wizard_answer action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <answer>New HR Case custom</answer>
+        <button_label/>
+        <dependent_value/>
+        <element/>
+        <name>HR Case custom</name>
+        <next_question/>
+        <order>100</order>
+        <payload_name/>
+        <question display_value="Task" name="Task">2ab4407fe13222108bb2327e62588641</question>
+        <roles/>
+        <script/>
+        <sys_class_name>sys_wizard_answer</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-18 12:30:13</sys_created_on>
+        <sys_id>c68b7dfdc3003210b0541c65e40131c1</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>HR Case custom</sys_name>
+        <sys_package display_value="Custom HRSD RBH" source="x_222370_custom_0">48a87df9c3003210b0541c65e4013112</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Custom HRSD RBH">48a87df9c3003210b0541c65e4013112</sys_scope>
+        <sys_update_name>sys_wizard_answer_c68b7dfdc3003210b0541c65e40131c1</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-18 12:30:13</sys_updated_on>
+        <table/>
+        <target_url>x_222370_custom_0_hr_case_custom.do</target_url>
+        <type>1</type>
+    </sys_wizard_answer>
+</record_update>

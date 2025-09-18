@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>package_private</access>
+        <active>true</active>
+        <api_name>x_222370_custom_0.hr_ServicesUtil</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>Customizations:&#13;
+- createCaseFromProducer  (MODIFIED) in order for the return URL param to point to the rbh_hrm_ticket_page instead of hrm_ticket_page.&#13;
+&#13;
+OOB Description:&#13;
+Utilities for creating HR Cases from an HR Service</description>
+        <mobile_callable>false</mobile_callable>
+        <name>hr_ServicesUtil</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var hr_ServicesUtil = Class.create();
+hr_ServicesUtil.prototype = {
+    initialize: function(_case, _gs) {
+        if (!_case)
+            return;
+
+        this._case = _case;
+        this._gs = _gs || gs;
+        this._hrCaseUtils = new sn_hr_core.hr_CaseUtils(this._case, this._gs);
+    },
+
+    /*
+     * Return the HR Service sys_id for a given value
+     * @param rpId The record producer that invoked this
+     */
+    getServiceSysIdByProducerId: function(rpId) {
+        var serviceGr = new GlideRecord("sn_hr_core_service");
+        serviceGr.addActiveQuery();
+        serviceGr.addQuery('producer', rpId);
+        serviceGr.query();
+        if (serviceGr.next())
+            return serviceGr.getUniqueValue();
+        return null;
+    },
+
+    /*
+     * Create case from producer and a service
+     * @param producer Structure passed by RP that holds questions and answers from RP
+     * @param rpId     The record producer that invoked this
+     */
+    createCaseFromProducer: function(producer, rpId) {
+        var serviceSysId = this.getServiceSysIdByProducerId(rpId);
+        if (serviceSysId) {
+            this.createCaseFromProducerByService(producer, serviceSysId, rpId);
+        }
+
+        if (!gs.isMobile() && !new global.HRSecurityUtils().isTablet()) {
+            if (GlidePluginManager.isActive('com.sn_jny') && this._case.getElement('hr_service.fulfillment_type').toString() === 'journey')
+                producer.portal_redirect = '?id=jny_journey_details&sys_id=' + this._case.jny_context.toString();
+            else {
+                /* [HOC CUSTOMIZATION - value on following line] */
+                var page = GlidePluginManager.isActive('com.sn_hr_service_portal') ? 'rbh_hrm_ticket_page' : 'hrsp_ticket';
+                producer.portal_redirect = '?id=' + page + '&sys_id=' + this._case.sys_id + '&table=' + this._case.sys_class_name;
+            }
+        }
+    },
+
+    /*
+     * Fills in a HR Case with service and question fields. This is entry point for RP 
+     * driven case updates.  Lookup is done by service sys_id.
+     *
+     * @param producer structure passed by RP that holds questions and answers from RP
+     * @param service  sys_id of service being used (see sn_hr_core_service)
+     */
+    createCaseFromProducerByService: function(producer, service, rpId) {
+
+        // Convert the producer to a question list object
+        var questions = this._getProducerQuestions(producer, rpId);
+
+        // Set the proper HR Case fields 
+        this.updateCase(service, questions, 'self_service');
+
+        // Set the redirect for the producer back to Case list
+        producer.redirect = 'sn_hr_core_case_list.do?sysparm_query=active%3Dtrue^opened_byDYNAMIC90d1921e5f510100a9ad2572f2b477fe^ORDERBYDESCnumber&sysparm_titleless=true';
+    },
+
+
+    /*
+     * Fills in a HR Case with service and question fields. This is entry point for scripted 
+     * (i.e. non-RP) case updates.
+     *
+     * @param service sys_id of service being used (see sn_hr_core_service)
+     * @param questions a map of the questions and answer values
+     */
+    updateCase: function(service, questions, source) {
+        // Set the proper HR Case fields 
+        this._hrCaseUtils.populateCase(service, questions, source);
+    },
+
+    /*
+     * Retrieves all the variables in question form and values from the record producer instance
+     *
+     * @param producer object that holds the questions/answers from user input on an RP
+     * @Returns a map of the questions and values
+     */
+    _getProducerQuestions: function(producer, rpId) {
+        var relevantVariables = new global.HRSecurityUtils().getRelevantVariablesForCatItem(rpId);
+        var questions = [];
+
+        for (var i = 0; i < relevantVariables.length; i++) {
+            var variable = relevantVariables[i];
+            if (variable.type == 'sc_multi_row') {
+                var variableSet = new sn_sc.CatItem(rpId).getVariableSet();
+                var variableSetMap = this._getVariableFromVariableSetForCatItem(variableSet);
+                var multiVarArray = JSON.parse(producer[variable.name]);
+                for (var j = 0; j < multiVarArray.length; j++) {
+                    var dataObj = multiVarArray[j];
+                    for (var key in dataObj)
+                        if (dataObj.hasOwnProperty(key)) {
+                            var displayValue = this._getDisplayValue(variableSetMap[key], dataObj[key]);
+                            questions.push(this._hrCaseUtils.getQuestion(variableSetMap[key]['label'], key, dataObj[key], dataObj[key], '', displayValue, variableSetMap[key]['type']));
+                        }
+                }
+                continue;
+            }
+            var producerValue = producer['IO' + variable.id];
+            if (producerValue) {
+                var answer = this._getDisplayValue(variable, producerValue);
+                var displayValue = this._getDisplayValue(variable, producerValue, producerValue.getDisplayValue());
+                questions.push(this._hrCaseUtils.getQuestion(variable.label, variable.name, answer, producerValue, '', displayValue, variable.type));
+            }
+        }
+
+        return questions;
+    },
+
+    _getVariableFromVariableSetForCatItem: function(variableSetId) {
+        var variablesNames = {};
+        var gr = new GlideRecord("item_option_new");
+        gr.addQuery("variable_set", variableSetId);
+        gr.addQuery('type', 'NOT IN', '19, 20, 24'); // Container start, end and split
+        gr.query();
+        while (gr.next()) {
+            variablesNames[gr.getValue('name')] = {
+                type: gr.getValue('type'),
+                label: gr.getDisplayValue('question_text'),
+                reference: gr.getValue('reference'),
+                list_table: gr.getValue('list_table')
+            };
+        }
+        return variablesNames;
+    },
+    /*
+     * Gets display value for passed in variable
+     *
+     * @param variable The variable whose value is wanted
+     * @param defaultAnswer The value to return if a display value could not be found
+     * @return The value to display for the passed in variable
+     */
+    _getDisplayValue: function(variable, defaultAnswer, defaultDisplayValue) {
+        var value = defaultDisplayValue ? defaultDisplayValue : defaultAnswer;
+
+        if (variable.type == '9' && defaultAnswer) { // Date
+            var date = new GlideDate();
+            date.setValue(defaultAnswer);
+            return date.getDisplayValue();
+        }
+
+        if (variable.type == '10' && defaultAnswer) { // DateTime
+            var dateTime = new GlideDateTime();
+            dateTime.setValue(defaultAnswer);
+            return dateTime.getDisplayValue();
+        }
+
+        var tableName = variable.type == '21' ?
+            variable.list_table : // List Selector
+            variable.reference; // Reference
+
+        if (!tableName)
+            return value;
+
+        var record = new GlideRecord(tableName);
+
+        var answerSysIds = (defaultAnswer || '').split(',');
+        var answerList = answerSysIds.reduce(function(acc, answerSysId) {
+            if (!answerSysId || !record.get(answerSysId)) return acc;
+            acc.push(record.getDisplayValue());
+            return acc;
+        }, []);
+
+        return answerList.length ? answerList.join(',') : value;
+    },
+
+    getProfileSubjectFilter: function() {
+        var refQual = "basic_apply_to=sn_hr_core_case";
+
+        var tableList = new GlideTableHierarchy("sn_hr_core_benefit").getAllExtensions();
+        tableList = tableList.concat(new GlideTableHierarchy("sn_hr_core_beneficiary").getAllExtensions());
+        tableList = tableList.concat(new GlideTableHierarchy("sn_hr_core_direct_deposit").getAllExtensions());
+        tableList = tableList.concat(new GlideTableHierarchy("sn_hr_core_tuition_reimbursement").getAllExtensions());
+
+        if (tableList)
+            refQual += "^basic_query_fromIN" + tableList;
+
+        return refQual;
+    },
+
+    type: 'hr_ServicesUtil'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-18 12:38:26</sys_created_on>
+        <sys_id>332d3d71c3403210b0541c65e40131fa</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>hr_ServicesUtil</sys_name>
+        <sys_package display_value="Custom HRSD RBH" source="x_222370_custom_0">48a87df9c3003210b0541c65e4013112</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="Custom HRSD RBH">48a87df9c3003210b0541c65e4013112</sys_scope>
+        <sys_update_name>sys_script_include_332d3d71c3403210b0541c65e40131fa</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-18 12:38:26</sys_updated_on>
+    </sys_script_include>
+</record_update>

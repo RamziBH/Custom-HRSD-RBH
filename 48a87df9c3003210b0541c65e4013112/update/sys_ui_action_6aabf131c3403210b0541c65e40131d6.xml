@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_ui_action">
+    <sys_ui_action action="INSERT_OR_UPDATE">
+        <action_name/>
+        <active>true</active>
+        <client>true</client>
+        <client_script_v2><![CDATA[function onClick(g_form) {
+
+}]]></client_script_v2>
+        <comments>Cancels any currently requested Approvals and adds a new manual approver for the currently logged in user.&#13;
+&#13;
+current.getValue("x_hccc_base_meta").toLowerCase().indexOf("mems") &gt; -1 &amp;&amp; current.hr_service.name.toString().toLowerCase().indexOf("approval") &gt; -1 &amp;&amp; current.getValue("state") == 10</comments>
+        <condition>new sn_hr_core.HoCHRCoreUtils().uiActionConditionAddMemsApproval(current);</condition>
+        <form_action>false</form_action>
+        <form_button>false</form_button>
+        <form_button_v2>false</form_button_v2>
+        <form_context_menu>false</form_context_menu>
+        <form_link>false</form_link>
+        <form_menu_button_v2>false</form_menu_button_v2>
+        <form_style/>
+        <format_for_configurable_workspace>false</format_for_configurable_workspace>
+        <hint/>
+        <isolate_script>true</isolate_script>
+        <list_action>false</list_action>
+        <list_banner_button>false</list_banner_button>
+        <list_button>false</list_button>
+        <list_choice>false</list_choice>
+        <list_context_menu>false</list_context_menu>
+        <list_link>false</list_link>
+        <list_save_with_form_button>false</list_save_with_form_button>
+        <list_style/>
+        <messages>sn_hr_core.confirm.add.mems.approval</messages>
+        <name>Add Approval</name>
+        <onclick>uHoCAddMemsApprovalClient()</onclick>
+        <order>100</order>
+        <script><![CDATA[//client function that runs "onclick"
+function uHoCAddMemsApprovalClient() {
+    if (confirm(getMessage("sn_hr_core.confirm.add.mems.approval"))) {
+        //gsftSubmit(null, g_form.getFormElement(), "u_hoc_add_mems_approval");  //MUST be the "Action name" for this UI Action
+
+        //call an Ajax function to insert a new Approval record and then open a new tab/window for the user to approve/reject the request
+        var ga = new GlideAjax("global.HoCGlobalAjaxUtils");
+        ga.addParam("sysparm_name", "manuallyOverrideApproval");
+        ga.addParam("sysparm_id", g_form.getUniqueValue());  //the sys_id of the Case to approve
+        ga.addParam("sysparm_table_name", g_form.getTableName());
+        ga.getXMLAnswer(uHoCOpenPortal); //just returns the value of the answer node (much simpler and cleaner)
+    }
+
+    //callback function to process the response returned from the server
+    function uHoCOpenPortal(response) {
+        var result = JSON.parse(response); //transform the JSON string to an object
+        if (result.approvalId != "" ) {
+			//open the services portal in a new tab/window
+			var url = new GlideURL("services");
+			url.addParam("id", "hoc_hrm_todos_page");
+			g_navigation.open(url.getURL(), "_blank");
+		}
+    }
+}]]></script>
+        <show_insert>true</show_insert>
+        <show_multiple_update>false</show_multiple_update>
+        <show_query>false</show_query>
+        <show_update>true</show_update>
+        <sys_class_name>sys_ui_action</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-18 12:31:38</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>6aabf131c3403210b0541c65e40131d6</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Add Approval</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="Custom HRSD RBH" source="x_222370_custom_0">48a87df9c3003210b0541c65e4013112</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Custom HRSD RBH">48a87df9c3003210b0541c65e4013112</sys_scope>
+        <sys_update_name>sys_ui_action_6aabf131c3403210b0541c65e40131d6</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-18 12:31:38</sys_updated_on>
+        <table>x_222370_custom_0_hr_case_custom</table>
+        <ui11_compatible>true</ui11_compatible>
+        <ui16_compatible>false</ui16_compatible>
+    </sys_ui_action>
+</record_update>
